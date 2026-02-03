@@ -78,18 +78,28 @@ interface EmbeddingModelProvider {
 }
 
 // Migrate old localStorage model selections to server config
+// Uses safeGetItem to handle browsers that block localStorage (e.g., Comet)
 const migrateLocalStorage = async () => {
+  const { safeGetItem } = await import('@/lib/config/clientRegistry');
+
   // Try new format first (selectedChatModel/selectedEmbeddingModel)
-  const oldChatModel = localStorage.getItem('selectedChatModel');
-  const oldEmbeddingModel = localStorage.getItem('selectedEmbeddingModel');
+  const oldChatModel = safeGetItem('selectedChatModel');
+  const oldEmbeddingModel = safeGetItem('selectedEmbeddingModel');
 
   // Also try legacy format (separate keys)
-  const legacyChatModelKey = localStorage.getItem('chatModelKey');
-  const legacyChatModelProviderId = localStorage.getItem('chatModelProviderId');
-  const legacyEmbeddingModelKey = localStorage.getItem('embeddingModelKey');
-  const legacyEmbeddingModelProviderId = localStorage.getItem(
-    'embeddingModelProviderId',
-  );
+  const legacyChatModelKey = safeGetItem('chatModelKey');
+  const legacyChatModelProviderId = safeGetItem('chatModelProviderId');
+  const legacyEmbeddingModelKey = safeGetItem('embeddingModelKey');
+  const legacyEmbeddingModelProviderId = safeGetItem('embeddingModelProviderId');
+
+  // Helper to safely remove localStorage items
+  const safeRemoveItem = (key: string) => {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // Ignore if localStorage is blocked
+    }
+  };
 
   // Migrate chat model (prefer new format over legacy)
   if (oldChatModel) {
@@ -103,7 +113,7 @@ const migrateLocalStorage = async () => {
           value: parsed,
         }),
       });
-      localStorage.removeItem('selectedChatModel');
+      safeRemoveItem('selectedChatModel');
     } catch (err) {
       console.warn('Error migrating chat model from localStorage:', err);
     }
@@ -117,8 +127,8 @@ const migrateLocalStorage = async () => {
           value: { key: legacyChatModelKey, providerId: legacyChatModelProviderId },
         }),
       });
-      localStorage.removeItem('chatModelKey');
-      localStorage.removeItem('chatModelProviderId');
+      safeRemoveItem('chatModelKey');
+      safeRemoveItem('chatModelProviderId');
     } catch (err) {
       console.warn('Error migrating legacy chat model from localStorage:', err);
     }
@@ -136,7 +146,7 @@ const migrateLocalStorage = async () => {
           value: parsed,
         }),
       });
-      localStorage.removeItem('selectedEmbeddingModel');
+      safeRemoveItem('selectedEmbeddingModel');
     } catch (err) {
       console.warn('Error migrating embedding model from localStorage:', err);
     }
@@ -153,8 +163,8 @@ const migrateLocalStorage = async () => {
           },
         }),
       });
-      localStorage.removeItem('embeddingModelKey');
-      localStorage.removeItem('embeddingModelProviderId');
+      safeRemoveItem('embeddingModelKey');
+      safeRemoveItem('embeddingModelProviderId');
     } catch (err) {
       console.warn(
         'Error migrating legacy embedding model from localStorage:',
@@ -167,6 +177,7 @@ const migrateLocalStorage = async () => {
 const checkConfig = async (
   setChatModelProvider: (provider: ChatModelProvider) => void,
   setEmbeddingModelProvider: (provider: EmbeddingModelProvider) => void,
+  setSystemInstructions: (instructions: string) => void,
   setIsConfigReady: (ready: boolean) => void,
   setHasError: (hasError: boolean) => void,
 ) => {
@@ -245,6 +256,9 @@ const checkConfig = async (
       key: embeddingModelKey,
       providerId: embeddingModelProviderId,
     });
+
+    // Set system instructions from server config
+    setSystemInstructions(data.systemInstructions || '');
 
     setIsConfigReady(true);
   } catch (err: any) {
@@ -372,7 +386,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   const [fileIds, setFileIds] = useState<string[]>([]);
 
   const [sources, setSources] = useState<string[]>(['web']);
-  const [optimizationMode, setOptimizationMode] = useState('speed');
+  const [optimizationMode, setOptimizationMode] = useState('balanced');
 
   const [isMessagesLoaded, setIsMessagesLoaded] = useState(false);
 
@@ -390,6 +404,8 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       key: '',
       providerId: '',
     });
+
+  const [systemInstructions, setSystemInstructions] = useState('');
 
   const [isConfigReady, setIsConfigReady] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -548,6 +564,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     checkConfig(
       setChatModelProvider,
       setEmbeddingModelProvider,
+      setSystemInstructions,
       setIsConfigReady,
       setHasError,
     );
@@ -856,7 +873,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
           key: embeddingModelProvider.key,
           providerId: embeddingModelProvider.providerId,
         },
-        systemInstructions: localStorage.getItem('systemInstructions'),
+        systemInstructions,
       }),
     });
 

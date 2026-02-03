@@ -12,16 +12,18 @@ export const GET = async () => {
       return !p.chatModels.some((m) => m.key === 'error');
     });
 
-    // Get selected models from server config
+    // Get selected models and personalization from server config
     const config = configManager.getCurrentConfig();
     const selectedChatModel = config.preferences.selectedChatModel;
     const selectedEmbeddingModel = config.preferences.selectedEmbeddingModel;
+    const systemInstructions = config.personalization?.systemInstructions || '';
 
     return Response.json(
       {
         providers: filteredProviders,
         selectedChatModel,
         selectedEmbeddingModel,
+        systemInstructions,
       },
       {
         status: 200,

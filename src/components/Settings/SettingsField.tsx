@@ -5,6 +5,7 @@ import {
   TextareaUIConfigField,
   UIConfigField,
 } from '@/lib/config/types';
+import { safeSetItem } from '@/lib/config/clientRegistry';
 import { useState } from 'react';
 import Select from '../ui/Select';
 import { toast } from 'sonner';
@@ -37,7 +38,7 @@ const SettingsSelect = ({
     setValue(newValue);
     try {
       if (field.scope === 'client') {
-        localStorage.setItem(field.key, newValue);
+        safeSetItem(field.key, newValue);
         if (field.key === 'theme') {
           setTheme(newValue);
         }
@@ -112,7 +113,7 @@ const SettingsInput = ({
     setValue(newValue);
     try {
       if (field.scope === 'client') {
-        localStorage.setItem(field.key, newValue);
+        safeSetItem(field.key, newValue);
         emitClientConfigChanged();
       } else {
         const res = await fetch('/api/config', {
@@ -189,7 +190,7 @@ const SettingsTextarea = ({
     setValue(newValue);
     try {
       if (field.scope === 'client') {
-        localStorage.setItem(field.key, newValue);
+        safeSetItem(field.key, newValue);
         emitClientConfigChanged();
       } else {
         const res = await fetch('/api/config', {
@@ -266,7 +267,7 @@ const SettingsSwitch = ({
     setValue(newValue);
     try {
       if (field.scope === 'client') {
-        localStorage.setItem(field.key, String(newValue));
+        safeSetItem(field.key, String(newValue));
         emitClientConfigChanged();
       } else {
         const res = await fetch('/api/config', {

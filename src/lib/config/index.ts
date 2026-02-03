@@ -97,7 +97,7 @@ class ConfigManager {
         description: 'Add custom behavior or tone for the model.',
         placeholder:
           'e.g., "Respond in a friendly and concise tone" or "Use British English and format answers as bullet points."',
-        scope: 'client',
+        scope: 'server',
       },
     ],
     modelProviders: [],
