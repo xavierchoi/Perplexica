@@ -79,9 +79,19 @@ interface EmbeddingModelProvider {
 
 // Migrate old localStorage model selections to server config
 const migrateLocalStorage = async () => {
+  // Try new format first (selectedChatModel/selectedEmbeddingModel)
   const oldChatModel = localStorage.getItem('selectedChatModel');
   const oldEmbeddingModel = localStorage.getItem('selectedEmbeddingModel');
 
+  // Also try legacy format (separate keys)
+  const legacyChatModelKey = localStorage.getItem('chatModelKey');
+  const legacyChatModelProviderId = localStorage.getItem('chatModelProviderId');
+  const legacyEmbeddingModelKey = localStorage.getItem('embeddingModelKey');
+  const legacyEmbeddingModelProviderId = localStorage.getItem(
+    'embeddingModelProviderId',
+  );
+
+  // Migrate chat model (prefer new format over legacy)
   if (oldChatModel) {
     try {
       const parsed = JSON.parse(oldChatModel);
@@ -94,11 +104,27 @@ const migrateLocalStorage = async () => {
         }),
       });
       localStorage.removeItem('selectedChatModel');
-    } catch {
-      // Ignore migration errors
+    } catch (err) {
+      console.warn('Error migrating chat model from localStorage:', err);
+    }
+  } else if (legacyChatModelKey && legacyChatModelProviderId) {
+    try {
+      await fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          key: 'preferences.selectedChatModel',
+          value: { key: legacyChatModelKey, providerId: legacyChatModelProviderId },
+        }),
+      });
+      localStorage.removeItem('chatModelKey');
+      localStorage.removeItem('chatModelProviderId');
+    } catch (err) {
+      console.warn('Error migrating legacy chat model from localStorage:', err);
     }
   }
 
+  // Migrate embedding model (prefer new format over legacy)
   if (oldEmbeddingModel) {
     try {
       const parsed = JSON.parse(oldEmbeddingModel);
@@ -111,8 +137,29 @@ const migrateLocalStorage = async () => {
         }),
       });
       localStorage.removeItem('selectedEmbeddingModel');
-    } catch {
-      // Ignore migration errors
+    } catch (err) {
+      console.warn('Error migrating embedding model from localStorage:', err);
+    }
+  } else if (legacyEmbeddingModelKey && legacyEmbeddingModelProviderId) {
+    try {
+      await fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          key: 'preferences.selectedEmbeddingModel',
+          value: {
+            key: legacyEmbeddingModelKey,
+            providerId: legacyEmbeddingModelProviderId,
+          },
+        }),
+      });
+      localStorage.removeItem('embeddingModelKey');
+      localStorage.removeItem('embeddingModelProviderId');
+    } catch (err) {
+      console.warn(
+        'Error migrating legacy embedding model from localStorage:',
+        err,
+      );
     }
   }
 };
