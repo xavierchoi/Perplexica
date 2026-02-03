@@ -20,6 +20,16 @@ export const safeSetItem = (key: string, value: string): boolean => {
   }
 };
 
+export const safeRemoveItem = (key: string): boolean => {
+  try {
+    if (typeof localStorage === 'undefined') return false;
+    localStorage.removeItem(key);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const getClientConfig = (key: string, defaultVal?: any) => {
   return safeGetItem(key) ?? defaultVal ?? undefined;
 };

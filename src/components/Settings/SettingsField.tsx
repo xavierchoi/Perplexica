@@ -19,6 +19,12 @@ const emitClientConfigChanged = () => {
   }
 };
 
+const emitServerConfigChanged = () => {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('server-config-changed'));
+  }
+};
+
 const SettingsSelect = ({
   field,
   value,
@@ -59,6 +65,7 @@ const SettingsSelect = ({
           console.error('Failed to save config:', await res.text());
           throw new Error('Failed to save configuration');
         }
+        emitServerConfigChanged();
       }
     } catch (error) {
       console.error('Error saving config:', error);
@@ -131,6 +138,7 @@ const SettingsInput = ({
           console.error('Failed to save config:', await res.text());
           throw new Error('Failed to save configuration');
         }
+        emitServerConfigChanged();
       }
     } catch (error) {
       console.error('Error saving config:', error);
@@ -208,6 +216,7 @@ const SettingsTextarea = ({
           console.error('Failed to save config:', await res.text());
           throw new Error('Failed to save configuration');
         }
+        emitServerConfigChanged();
       }
     } catch (error) {
       console.error('Error saving config:', error);
@@ -285,6 +294,7 @@ const SettingsSwitch = ({
           console.error('Failed to save config:', await res.text());
           throw new Error('Failed to save configuration');
         }
+        emitServerConfigChanged();
       }
     } catch (error) {
       console.error('Error saving config:', error);

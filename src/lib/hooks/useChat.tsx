@@ -15,7 +15,11 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { getSuggestions } from '../actions';
 import { MinimalProvider } from '../models/types';
-import { getAutoMediaSearch } from '../config/clientRegistry';
+import {
+  getAutoMediaSearch,
+  safeGetItem,
+  safeRemoveItem,
+} from '../config/clientRegistry';
 import { applyPatch } from 'rfc6902';
 import { Widget } from '@/components/ChatWindow';
 
@@ -80,8 +84,6 @@ interface EmbeddingModelProvider {
 // Migrate old localStorage model selections to server config
 // Uses safeGetItem to handle browsers that block localStorage (e.g., Comet)
 const migrateLocalStorage = async () => {
-  const { safeGetItem } = await import('@/lib/config/clientRegistry');
-
   // Try new format first (selectedChatModel/selectedEmbeddingModel)
   const oldChatModel = safeGetItem('selectedChatModel');
   const oldEmbeddingModel = safeGetItem('selectedEmbeddingModel');
@@ -91,15 +93,6 @@ const migrateLocalStorage = async () => {
   const legacyChatModelProviderId = safeGetItem('chatModelProviderId');
   const legacyEmbeddingModelKey = safeGetItem('embeddingModelKey');
   const legacyEmbeddingModelProviderId = safeGetItem('embeddingModelProviderId');
-
-  // Helper to safely remove localStorage items
-  const safeRemoveItem = (key: string) => {
-    try {
-      localStorage.removeItem(key);
-    } catch {
-      // Ignore if localStorage is blocked
-    }
-  };
 
   // Migrate chat model (prefer new format over legacy)
   if (oldChatModel) {
@@ -568,6 +561,27 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
       setIsConfigReady,
       setHasError,
     );
+
+    // Listen for server config changes (e.g., systemInstructions updated in Settings)
+    const handleServerConfigChanged = async () => {
+      try {
+        const res = await fetch('/api/providers');
+        if (res.ok) {
+          const data = await res.json();
+          setSystemInstructions(data.systemInstructions || '');
+        }
+      } catch (err) {
+        console.warn('Failed to refresh server config:', err);
+      }
+    };
+
+    window.addEventListener('server-config-changed', handleServerConfigChanged);
+    return () => {
+      window.removeEventListener(
+        'server-config-changed',
+        handleServerConfigChanged,
+      );
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
