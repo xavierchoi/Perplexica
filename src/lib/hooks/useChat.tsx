@@ -77,6 +77,46 @@ interface EmbeddingModelProvider {
   providerId: string;
 }
 
+// Migrate old localStorage model selections to server config
+const migrateLocalStorage = async () => {
+  const oldChatModel = localStorage.getItem('selectedChatModel');
+  const oldEmbeddingModel = localStorage.getItem('selectedEmbeddingModel');
+
+  if (oldChatModel) {
+    try {
+      const parsed = JSON.parse(oldChatModel);
+      await fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          key: 'preferences.selectedChatModel',
+          value: parsed,
+        }),
+      });
+      localStorage.removeItem('selectedChatModel');
+    } catch {
+      // Ignore migration errors
+    }
+  }
+
+  if (oldEmbeddingModel) {
+    try {
+      const parsed = JSON.parse(oldEmbeddingModel);
+      await fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          key: 'preferences.selectedEmbeddingModel',
+          value: parsed,
+        }),
+      });
+      localStorage.removeItem('selectedEmbeddingModel');
+    } catch {
+      // Ignore migration errors
+    }
+  }
+};
+
 const checkConfig = async (
   setChatModelProvider: (provider: ChatModelProvider) => void,
   setEmbeddingModelProvider: (provider: EmbeddingModelProvider) => void,
@@ -84,12 +124,8 @@ const checkConfig = async (
   setHasError: (hasError: boolean) => void,
 ) => {
   try {
-    let chatModelKey = localStorage.getItem('chatModelKey');
-    let chatModelProviderId = localStorage.getItem('chatModelProviderId');
-    let embeddingModelKey = localStorage.getItem('embeddingModelKey');
-    let embeddingModelProviderId = localStorage.getItem(
-      'embeddingModelProviderId',
-    );
+    // Migrate any old localStorage data first
+    await migrateLocalStorage();
 
     const res = await fetch(`/api/providers`, {
       headers: {
@@ -105,6 +141,12 @@ const checkConfig = async (
 
     const data = await res.json();
     const providers: MinimalProvider[] = data.providers;
+
+    // Get selected models from server config
+    let chatModelKey = data.selectedChatModel?.key;
+    let chatModelProviderId = data.selectedChatModel?.providerId;
+    let embeddingModelKey = data.selectedEmbeddingModel?.key;
+    let embeddingModelProviderId = data.selectedEmbeddingModel?.providerId;
 
     if (providers.length === 0) {
       throw new Error(
@@ -146,11 +188,6 @@ const checkConfig = async (
         (m) => m.key === embeddingModelKey,
       ) ?? embeddingModelProvider.embeddingModels[0];
     embeddingModelKey = embeddingModel.key;
-
-    localStorage.setItem('chatModelKey', chatModelKey);
-    localStorage.setItem('chatModelProviderId', chatModelProviderId);
-    localStorage.setItem('embeddingModelKey', embeddingModelKey);
-    localStorage.setItem('embeddingModelProviderId', embeddingModelProviderId);
 
     setChatModelProvider({
       key: chatModelKey,
@@ -688,7 +725,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
         );
 
         if (hasSourceBlocks && !hasSuggestions) {
-          const suggestions = await getSuggestions(newHistory);
+          const suggestions = await getSuggestions(newHistory, chatModelProvider);
           const suggestionBlock: Block = {
             id: crypto.randomBytes(7).toString('hex'),
             type: 'suggestion',

@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import Lightbox, { GenericSlide, VideoSlide } from 'yet-another-react-lightbox';
 import 'yet-another-react-lightbox/styles.css';
 import { Message } from './ChatWindow';
+import { useChat } from '@/lib/hooks/useChat';
 
 type Video = {
   url: string;
@@ -33,6 +34,7 @@ const Searchvideos = ({
   chatHistory: [string, string][];
   messageId: string;
 }) => {
+  const { chatModelProvider } = useChat();
   const [videos, setVideos] = useState<Video[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -48,11 +50,6 @@ const Searchvideos = ({
           onClick={async () => {
             setLoading(true);
 
-            const chatModelProvider = localStorage.getItem(
-              'chatModelProviderId',
-            );
-            const chatModel = localStorage.getItem('chatModelKey');
-
             const res = await fetch(`/api/videos`, {
               method: 'POST',
               headers: {
@@ -62,8 +59,8 @@ const Searchvideos = ({
                 query: query,
                 chatHistory: chatHistory,
                 chatModel: {
-                  providerId: chatModelProvider,
-                  key: chatModel,
+                  providerId: chatModelProvider.providerId,
+                  key: chatModelProvider.key,
                 },
               }),
             });
