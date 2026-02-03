@@ -74,10 +74,15 @@ const schemaCache = new LRUSchemaCache(SCHEMA_CACHE_MAX_SIZE);
 /**
  * Generate a unique cache key using tool name and schema hash.
  * Uses schema._def to create a fingerprint without calling z.toJSONSchema().
+ *
+ * Note: JSON.stringify may not capture non-serializable checks (RegExp, refinements).
+ * This is acceptable since Perplexica tools use static schemas with unique names.
  */
 function generateCacheKey(toolName: string, schema: z.ZodType): string {
   let schemaFingerprint: string;
   try {
+    // Note: `_def` is an internal, undocumented property of Zod.
+    // This is a performance optimization, but it may break in future Zod versions.
     schemaFingerprint = JSON.stringify(schema._def);
   } catch {
     // Fallback for circular schemas - use toJSONSchema which handles circular refs
