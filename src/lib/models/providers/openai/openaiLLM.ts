@@ -16,9 +16,30 @@ import {
   ChatCompletionMessageParam,
   ChatCompletionTool,
   ChatCompletionToolMessageParam,
+  FunctionParameters,
 } from 'openai/resources/index.mjs';
 import { Message } from '@/lib/types';
 import { repairJson } from '@toolsycc/json-repair';
+
+// Module-level cache for memoizing Zod schema to JSON Schema conversions
+const schemaCache = new Map<string, FunctionParameters>();
+
+/**
+ * Get cached JSON schema for a tool, or convert and cache it if not present.
+ * This avoids redundant schema conversions across multiple LLM calls.
+ */
+function getCachedToolSchema(
+  toolName: string,
+  schema: z.ZodType,
+): FunctionParameters {
+  const cached = schemaCache.get(toolName);
+  if (cached) {
+    return cached;
+  }
+  const jsonSchema = z.toJSONSchema(schema) as FunctionParameters;
+  schemaCache.set(toolName, jsonSchema);
+  return jsonSchema;
+}
 
 type OpenAIConfig = {
   apiKey: string;
@@ -78,7 +99,7 @@ class OpenAILLM extends BaseLLM<OpenAIConfig> {
         function: {
           name: tool.name,
           description: tool.description,
-          parameters: z.toJSONSchema(tool.schema),
+          parameters: getCachedToolSchema(tool.name, tool.schema),
         },
       });
     });
@@ -135,7 +156,7 @@ class OpenAILLM extends BaseLLM<OpenAIConfig> {
         function: {
           name: tool.name,
           description: tool.description,
-          parameters: z.toJSONSchema(tool.schema),
+          parameters: getCachedToolSchema(tool.name, tool.schema),
         },
       });
     });
