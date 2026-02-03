@@ -1,4 +1,5 @@
 import { UIConfigField } from '@/lib/config/types';
+import { safeGetItem } from '@/lib/config/clientRegistry';
 import SettingsField from '../SettingsField';
 
 const Personalization = ({
@@ -16,7 +17,7 @@ const Personalization = ({
           field={field}
           value={
             (field.scope === 'client'
-              ? localStorage.getItem(field.key)
+              ? safeGetItem(field.key)
               : values[field.key]) ?? field.default
           }
           dataAdd="personalization"

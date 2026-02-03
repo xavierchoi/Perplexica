@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import type { Metadata } from 'next';
 import { Montserrat } from 'next/font/google';
+import Script from 'next/script';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import Sidebar from '@/components/Sidebar';
@@ -34,6 +35,13 @@ export default function RootLayout({
 
   return (
     <html className="h-full" lang="en" suppressHydrationWarning>
+      <head>
+        {/* Polyfill localStorage for browsers that block it (e.g., Comet) */}
+        <Script
+          src="/localStorage-polyfill.js"
+          strategy="beforeInteractive"
+        />
+      </head>
       <body className={cn('h-full antialiased', montserrat.className)}>
         <ThemeProvider>
           {setupComplete ? (

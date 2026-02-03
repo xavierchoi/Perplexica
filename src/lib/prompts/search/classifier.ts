@@ -5,36 +5,60 @@ It will be shared a detailed conversation history and a user query and it has to
 </role>
 
 <labels>
-NOTE: BY GENERAL KNOWLEDGE WE MEAN INFORMATION THAT IS OBVIOUS, WIDELY KNOWN, OR CAN BE INFERRED WITHOUT EXTERNAL SOURCES FOR EXAMPLE MATHEMATICAL FACTS, BASIC SCIENTIFIC KNOWLEDGE, COMMON HISTORICAL EVENTS, ETC.
-1. skipSearch (boolean): Deeply analyze whether the user's query can be answered without performing any search.
-   - Set it to true if the query is straightforward, factual, or can be answered based on general knowledge.
-   - Set it to true for writing tasks or greeting messages that do not require external information.
-   - Set it to true if weather, stock, or similar widgets can fully satisfy the user's request.
-   - Set it to false if the query requires up-to-date information, specific details, or context that cannot be inferred from general knowledge.
-   - ALWAYS SET SKIPSEARCH TO FALSE IF YOU ARE UNCERTAIN OR IF THE QUERY IS AMBIGUOUS OR IF YOU'RE NOT SURE.
+1. skipSearch (boolean): Determine whether the query can be answered without web search.
+
+   SET skipSearch = TRUE for:
+   - Greetings and casual conversation: "Hello", "How are you?", "Thank you", "Goodbye"
+   - Basic arithmetic and math: "What is 15 * 7?", "Calculate 100 / 4", "Solve x + 5 = 10"
+   - Common knowledge and well-established facts: "What is the capital of France?", "How many days in a year?", "What is photosynthesis?"
+   - Writing tasks (creative writing, translation, summarization, etc.): "Write a poem about love", "Translate 'hello' to Spanish", "Summarize this paragraph"
+   - Programming help with general concepts: "Explain how recursion works", "What is a for loop?"
+   - Definitions and explanations of well-known concepts: "What is democracy?", "Define entropy", "Explain the water cycle"
+   - Philosophical or opinion-based questions: "What is the meaning of life?", "Is it ethical to lie?"
+   - When widgets (weather, stock, calculation) can fully answer the query
+
+   SET skipSearch = FALSE for:
+   - Current events, news, or recent happenings: "What happened in the news today?", "Latest election results"
+   - Real-time or frequently changing data (except when widgets apply): "Current Bitcoin price", "Today's exchange rate"
+   - Specific factual claims that need verification: "Did Company X acquire Company Y?", "When did Person X die?"
+   - Technical documentation, APIs, or library-specific questions: "How to use React hooks?", "Next.js 14 new features"
+   - Niche or specialized topics requiring expert sources: "Treatment for rare disease X", "Quantum computing algorithms"
+   - Questions about specific products, services, or companies: "iPhone 16 specs", "Tesla Model S range"
+   - Statistics, research data, or numerical facts that may have changed: "World population in 2024", "GDP of Japan"
+
+   HANDLING UNCERTAINTY:
+   - If the query is clearly conversational or general knowledge, set skipSearch = true
+   - If the query explicitly asks for "latest", "current", "recent", or "today's" information, set skipSearch = false
+   - For borderline cases, consider: Would the answer change in the last year? If yes, search. If no, skip.
+
 2. personalSearch (boolean): Determine if the query requires searching through user uploaded documents.
    - Set it to true if the query explicitly references or implies the need to access user-uploaded documents for example "Determine the key points from the document I uploaded about..." or "Who is the author?", "Summarize the content of the document"
    - Set it to false if the query does not reference user-uploaded documents or if the information can be obtained through general web search.
-   - ALWAYS SET PERSONALSEARCH TO FALSE IF YOU ARE UNCERTAIN OR IF THE QUERY IS AMBIGUOUS OR IF YOU'RE NOT SURE. AND SET SKIPSEARCH TO FALSE AS WELL.
+   - Default to false unless there is clear indication of document reference.
+
 3. academicSearch (boolean): Assess whether the query requires searching academic databases or scholarly articles.
    - Set it to true if the query explicitly requests scholarly information, research papers, academic articles, or citations for example "Find recent studies on...", "What does the latest research say about...", or "Provide citations for..."
    - Set it to false if the query can be answered through general web search or does not specifically request academic sources.
+
 4. discussionSearch (boolean): Evaluate if the query necessitates searching through online forums, discussion boards, or community Q&A platforms.
    - Set it to true if the query seeks opinions, personal experiences, community advice, or discussions for example "What do people think about...", "Are there any discussions on...", or "What are the common issues faced by..."
    - Set it to true if they're asking for reviews or feedback from users on products, services, or experiences.
    - Set it to false if the query can be answered through general web search or does not specifically request information from discussion platforms.
-5. showWeatherWidget (boolean): Decide if displaying a weather widget would adequately address the user's query.
-   - Set it to true if the user's query is specifically about current weather conditions, forecasts, or any weather-related information for a particular location.
-   - Set it to true for queries like "What's the weather like in [Location]?" or "Will it rain tomorrow in [Location]?" or "Show me the weather" (Here they mean weather of their current location).
-   - If it can fully answer the user query without needing additional search, set skipSearch to true as well.
-6. showStockWidget (boolean): Determine if displaying a stock market widget would sufficiently fulfill the user's request.
-   - Set it to true if the user's query is specifically about current stock prices or stock related information for particular companies. Never use it for a market analysis or news about stock market.
-   - Set it to true for queries like "What's the stock price of [Company]?" or "How is the [Stock] performing today?" or "Show me the stock prices" (Here they mean stocks of companies they are interested in).
-   - If it can fully answer the user query without needing additional search, set skipSearch to true as well.
-7. showCalculationWidget (boolean): Decide if displaying a calculation widget would adequately address the user's query.
-   - Set it to true if the user's query involves mathematical calculations, conversions, or any computation-related tasks.
-   - Set it to true for queries like "What is 25% of 80?" or "Convert 100 USD to EUR" or "Calculate the square root of 256" or "What is 2 * 3 + 5?" or other mathematical expressions.
-   - If it can fully answer the user query without needing additional search, set skipSearch to true as well.
+
+5. showWeatherWidget (boolean): Display weather widget for weather-specific queries.
+   - Set it to true ONLY for direct weather queries: "What's the weather in Seoul?", "Will it rain tomorrow?", "Temperature in New York"
+   - Set it to false for weather-related but not direct queries: "Best time to visit Paris", "Should I bring an umbrella?" (these need search)
+   - When true, also set skipSearch = true as the widget provides complete information.
+
+6. showStockWidget (boolean): Display stock widget for stock price queries.
+   - Set it to true ONLY for direct stock price queries: "Apple stock price", "How is TSLA doing?", "NVDA stock"
+   - Set it to false for: market analysis, stock news, investment advice, company financials (these need search)
+   - When true, also set skipSearch = true as the widget provides complete information.
+
+7. showCalculationWidget (boolean): Display calculation widget for math expressions.
+   - Set it to true for: arithmetic, unit conversions, percentage calculations, mathematical expressions
+   - Examples: "What is 25% of 80?", "Convert 100 USD to EUR", "sqrt(256)", "2^10"
+   - When true, also set skipSearch = true as the widget provides complete information.
 </labels>
 
 <standalone_followup>

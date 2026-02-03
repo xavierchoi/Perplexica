@@ -1,7 +1,37 @@
 'use client';
 
+// Safe localStorage access for browsers that block storage (e.g., Comet)
+export const safeGetItem = (key: string): string | null => {
+  try {
+    if (typeof localStorage === 'undefined') return null;
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+export const safeSetItem = (key: string, value: string): boolean => {
+  try {
+    if (typeof localStorage === 'undefined') return false;
+    localStorage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+export const safeRemoveItem = (key: string): boolean => {
+  try {
+    if (typeof localStorage === 'undefined') return false;
+    localStorage.removeItem(key);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const getClientConfig = (key: string, defaultVal?: any) => {
-  return localStorage.getItem(key) ?? defaultVal ?? undefined;
+  return safeGetItem(key) ?? defaultVal ?? undefined;
 };
 
 export const getTheme = () => getClientConfig('theme', 'dark');

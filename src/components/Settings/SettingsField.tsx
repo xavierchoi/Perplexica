@@ -5,6 +5,7 @@ import {
   TextareaUIConfigField,
   UIConfigField,
 } from '@/lib/config/types';
+import { safeSetItem } from '@/lib/config/clientRegistry';
 import { useState } from 'react';
 import Select from '../ui/Select';
 import { toast } from 'sonner';
@@ -15,6 +16,12 @@ import { Switch } from '@headlessui/react';
 const emitClientConfigChanged = () => {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('client-config-changed'));
+  }
+};
+
+const emitServerConfigChanged = () => {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('server-config-changed'));
   }
 };
 
@@ -37,7 +44,7 @@ const SettingsSelect = ({
     setValue(newValue);
     try {
       if (field.scope === 'client') {
-        localStorage.setItem(field.key, newValue);
+        safeSetItem(field.key, newValue);
         if (field.key === 'theme') {
           setTheme(newValue);
         }
@@ -58,6 +65,7 @@ const SettingsSelect = ({
           console.error('Failed to save config:', await res.text());
           throw new Error('Failed to save configuration');
         }
+        emitServerConfigChanged();
       }
     } catch (error) {
       console.error('Error saving config:', error);
@@ -112,7 +120,7 @@ const SettingsInput = ({
     setValue(newValue);
     try {
       if (field.scope === 'client') {
-        localStorage.setItem(field.key, newValue);
+        safeSetItem(field.key, newValue);
         emitClientConfigChanged();
       } else {
         const res = await fetch('/api/config', {
@@ -130,6 +138,7 @@ const SettingsInput = ({
           console.error('Failed to save config:', await res.text());
           throw new Error('Failed to save configuration');
         }
+        emitServerConfigChanged();
       }
     } catch (error) {
       console.error('Error saving config:', error);
@@ -189,7 +198,7 @@ const SettingsTextarea = ({
     setValue(newValue);
     try {
       if (field.scope === 'client') {
-        localStorage.setItem(field.key, newValue);
+        safeSetItem(field.key, newValue);
         emitClientConfigChanged();
       } else {
         const res = await fetch('/api/config', {
@@ -207,6 +216,7 @@ const SettingsTextarea = ({
           console.error('Failed to save config:', await res.text());
           throw new Error('Failed to save configuration');
         }
+        emitServerConfigChanged();
       }
     } catch (error) {
       console.error('Error saving config:', error);
@@ -266,7 +276,7 @@ const SettingsSwitch = ({
     setValue(newValue);
     try {
       if (field.scope === 'client') {
-        localStorage.setItem(field.key, String(newValue));
+        safeSetItem(field.key, String(newValue));
         emitClientConfigChanged();
       } else {
         const res = await fetch('/api/config', {
@@ -284,6 +294,7 @@ const SettingsSwitch = ({
           console.error('Failed to save config:', await res.text());
           throw new Error('Failed to save configuration');
         }
+        emitServerConfigChanged();
       }
     } catch (error) {
       console.error('Error saving config:', error);
