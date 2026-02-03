@@ -20,25 +20,102 @@ import {
 } from 'openai/resources/index.mjs';
 import { Message } from '@/lib/types';
 import { repairJson } from '@toolsycc/json-repair';
+import crypto from 'crypto';
 
-// Module-level cache for memoizing Zod schema to JSON Schema conversions
-const schemaCache = new Map<string, FunctionParameters>();
+const SCHEMA_CACHE_MAX_SIZE = 100;
+
+/**
+ * LRU (Least Recently Used) cache for memoizing Zod schema to JSON Schema conversions.
+ * Limits memory usage by evicting least recently used entries when capacity is reached.
+ */
+class LRUSchemaCache {
+  private cache = new Map<string, FunctionParameters>();
+  private readonly maxSize: number;
+
+  constructor(maxSize = SCHEMA_CACHE_MAX_SIZE) {
+    this.maxSize = maxSize;
+  }
+
+  get(key: string): FunctionParameters | undefined {
+    const value = this.cache.get(key);
+    if (value !== undefined) {
+      // Move to end (most recently used)
+      this.cache.delete(key);
+      this.cache.set(key, value);
+    }
+    return value;
+  }
+
+  set(key: string, value: FunctionParameters): void {
+    if (this.cache.has(key)) {
+      this.cache.delete(key);
+    } else if (this.cache.size >= this.maxSize) {
+      // Evict oldest (first) entry
+      const firstKey = this.cache.keys().next().value;
+      if (firstKey !== undefined) {
+        this.cache.delete(firstKey);
+      }
+    }
+    this.cache.set(key, value);
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+
+  get size(): number {
+    return this.cache.size;
+  }
+}
+
+// Module-level LRU cache for schema conversions
+const schemaCache = new LRUSchemaCache(SCHEMA_CACHE_MAX_SIZE);
+
+/**
+ * Generate a unique cache key using tool name and schema hash.
+ * Uses schema._def to create a fingerprint without calling z.toJSONSchema().
+ */
+function generateCacheKey(toolName: string, schema: z.ZodType): string {
+  let schemaFingerprint: string;
+  try {
+    schemaFingerprint = JSON.stringify(schema._def);
+  } catch {
+    // Fallback for circular schemas - use toJSONSchema which handles circular refs
+    schemaFingerprint = JSON.stringify(z.toJSONSchema(schema));
+  }
+  const hash = crypto
+    .createHash('sha256')
+    .update(schemaFingerprint)
+    .digest('hex')
+    .slice(0, 8); // 8 hex chars = 32 bits, sufficient for <100 entries
+  return `${toolName}:${hash}`;
+}
 
 /**
  * Get cached JSON schema for a tool, or convert and cache it if not present.
  * This avoids redundant schema conversions across multiple LLM calls.
+ * Uses schema content hash to prevent cache collisions when same tool name
+ * is used with different schemas.
  */
 function getCachedToolSchema(
   toolName: string,
   schema: z.ZodType,
 ): FunctionParameters {
-  const cached = schemaCache.get(toolName);
+  const cacheKey = generateCacheKey(toolName, schema);
+  const cached = schemaCache.get(cacheKey);
   if (cached) {
     return cached;
   }
   const jsonSchema = z.toJSONSchema(schema) as FunctionParameters;
-  schemaCache.set(toolName, jsonSchema);
+  schemaCache.set(cacheKey, jsonSchema);
   return jsonSchema;
+}
+
+/**
+ * Clear the schema cache. Useful for testing.
+ */
+export function clearSchemaCache(): void {
+  schemaCache.clear();
 }
 
 type OpenAIConfig = {
