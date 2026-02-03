@@ -20,7 +20,7 @@ import { AnimatePresence } from 'motion/react';
 import { motion } from 'framer-motion';
 
 const Attach = () => {
-  const { files, setFiles, setFileIds, fileIds } = useChat();
+  const { files, setFiles, setFileIds, fileIds, embeddingModelProvider } = useChat();
 
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<any>();
@@ -33,13 +33,8 @@ const Attach = () => {
       data.append('files', e.target.files![i]);
     }
 
-    const embeddingModelProvider = localStorage.getItem(
-      'embeddingModelProviderId',
-    );
-    const embeddingModel = localStorage.getItem('embeddingModelKey');
-
-    data.append('embedding_model_provider_id', embeddingModelProvider!);
-    data.append('embedding_model_key', embeddingModel!);
+    data.append('embedding_model_provider_id', embeddingModelProvider.providerId);
+    data.append('embedding_model_key', embeddingModelProvider.key);
 
     const res = await fetch(`/api/uploads`, {
       method: 'POST',

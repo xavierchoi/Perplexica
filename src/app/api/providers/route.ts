@@ -1,7 +1,8 @@
 import ModelRegistry from '@/lib/models/registry';
+import configManager from '@/lib/config';
 import { NextRequest } from 'next/server';
 
-export const GET = async (req: Request) => {
+export const GET = async () => {
   try {
     const registry = new ModelRegistry();
 
@@ -11,9 +12,16 @@ export const GET = async (req: Request) => {
       return !p.chatModels.some((m) => m.key === 'error');
     });
 
+    // Get selected models from server config
+    const config = configManager.getCurrentConfig();
+    const selectedChatModel = config.preferences.selectedChatModel;
+    const selectedEmbeddingModel = config.preferences.selectedEmbeddingModel;
+
     return Response.json(
       {
         providers: filteredProviders,
+        selectedChatModel,
+        selectedEmbeddingModel,
       },
       {
         status: 200,

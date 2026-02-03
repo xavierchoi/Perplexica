@@ -1,7 +1,7 @@
-export const getSuggestions = async (chatHistory: [string, string][]) => {
-  const chatModel = localStorage.getItem('chatModelKey');
-  const chatModelProvider = localStorage.getItem('chatModelProviderId');
-
+export const getSuggestions = async (
+  chatHistory: [string, string][],
+  chatModel: { providerId: string; key: string },
+) => {
   const res = await fetch(`/api/suggestions`, {
     method: 'POST',
     headers: {
@@ -9,10 +9,7 @@ export const getSuggestions = async (chatHistory: [string, string][]) => {
     },
     body: JSON.stringify({
       chatHistory,
-      chatModel: {
-        providerId: chatModelProvider,
-        key: chatModel,
-      },
+      chatModel,
     }),
   });
 

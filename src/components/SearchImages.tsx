@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Lightbox from 'yet-another-react-lightbox';
 import 'yet-another-react-lightbox/styles.css';
 import { Message } from './ChatWindow';
+import { useChat } from '@/lib/hooks/useChat';
 
 type Image = {
   url: string;
@@ -20,6 +21,7 @@ const SearchImages = ({
   chatHistory: [string, string][];
   messageId: string;
 }) => {
+  const { chatModelProvider } = useChat();
   const [images, setImages] = useState<Image[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -33,11 +35,6 @@ const SearchImages = ({
           onClick={async () => {
             setLoading(true);
 
-            const chatModelProvider = localStorage.getItem(
-              'chatModelProviderId',
-            );
-            const chatModel = localStorage.getItem('chatModelKey');
-
             const res = await fetch(`/api/images`, {
               method: 'POST',
               headers: {
@@ -47,8 +44,8 @@ const SearchImages = ({
                 query: query,
                 chatHistory: chatHistory,
                 chatModel: {
-                  providerId: chatModelProvider,
-                  key: chatModel,
+                  providerId: chatModelProvider.providerId,
+                  key: chatModelProvider.key,
                 },
               }),
             });

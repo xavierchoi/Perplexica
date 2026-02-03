@@ -60,10 +60,17 @@ type ConfigModelProvider = {
   hash: string;
 };
 
+type SelectedModel = {
+  providerId: string;
+  key: string;
+};
+
 type Config = {
   version: number;
   setupComplete: boolean;
   preferences: {
+    selectedChatModel?: SelectedModel;
+    selectedEmbeddingModel?: SelectedModel;
     [key: string]: any;
   };
   personalization: {
@@ -106,4 +113,5 @@ export type {
   ConfigModelProvider,
   TextareaUIConfigField,
   SwitchUIConfigField,
+  SelectedModel,
 };

@@ -5,7 +5,7 @@ import { ConfigModelProvider } from '@/lib/config/types';
 
 type SaveConfigBody = {
   key: string;
-  value: string;
+  value: string | number | boolean | Record<string, unknown>;
 };
 
 export const GET = async (req: NextRequest) => {
@@ -46,7 +46,7 @@ export const POST = async (req: NextRequest) => {
   try {
     const body: SaveConfigBody = await req.json();
 
-    if (!body.key || !body.value) {
+    if (!body.key || body.value === undefined) {
       return Response.json(
         {
           message: 'Key and value are required.',
@@ -68,7 +68,7 @@ export const POST = async (req: NextRequest) => {
       },
     );
   } catch (err) {
-    console.error('Error in getting config: ', err);
+    console.error('Error in saving config: ', err);
     return Response.json(
       { message: 'An error has occurred.' },
       { status: 500 },

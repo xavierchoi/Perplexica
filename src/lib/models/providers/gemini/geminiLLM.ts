@@ -76,7 +76,7 @@ class GeminiLLM extends BaseLLM<GeminiConfig> {
           parts.push({ text: msg.content });
         }
 
-        // Add function calls if present
+        // Add function calls if present (with thoughtSignature for Gemini 3+)
         if (msg.tool_calls && msg.tool_calls.length > 0) {
           for (const tc of msg.tool_calls) {
             parts.push({
@@ -85,6 +85,8 @@ class GeminiLLM extends BaseLLM<GeminiConfig> {
                 name: tc.name,
                 args: tc.arguments,
               },
+              // Gemini 3+ requires thoughtSignature for function calls
+              ...(tc.thoughtSignature && { thoughtSignature: tc.thoughtSignature }),
             });
           }
         }
@@ -208,16 +210,21 @@ class GeminiLLM extends BaseLLM<GeminiConfig> {
       // Response is empty but no explicit error - this is valid (empty text response)
     }
 
+    // Extract function calls with thoughtSignature from parts directly
+    // Gemini 3+ requires thoughtSignature for function calling to work
     const toolCalls: ToolCall[] = [];
-    const functionCalls = response.functionCalls;
-    if (functionCalls && functionCalls.length > 0) {
-      functionCalls.forEach((fc, index) => {
+    const parts = response.candidates?.[0]?.content?.parts || [];
+    let toolCallIndex = 0;
+    for (const part of parts) {
+      if (part.functionCall) {
+        const fc = part.functionCall;
         toolCalls.push({
-          id: fc.id || this.generateToolCallId(index, fc.name || 'unknown'),
+          id: fc.id || this.generateToolCallId(toolCallIndex++, fc.name || 'unknown'),
           name: fc.name || 'unknown',
           arguments: (fc.args as Record<string, unknown>) || {},
+          thoughtSignature: part.thoughtSignature,
         });
-      });
+      }
     }
 
     // Extract finishReason from candidates if available
@@ -250,10 +257,10 @@ class GeminiLLM extends BaseLLM<GeminiConfig> {
       },
     });
 
-    // Accumulate tool calls across chunks
+    // Accumulate tool calls across chunks (with thoughtSignature for Gemini 3+)
     const accumulatedToolCalls: Map<
       string,
-      { id: string; name: string; arguments: Record<string, unknown> }
+      { id: string; name: string; arguments: Record<string, unknown>; thoughtSignature?: string }
     > = new Map();
 
     // Track the last finishReason during streaming
@@ -263,19 +270,21 @@ class GeminiLLM extends BaseLLM<GeminiConfig> {
     let toolCallCounter = 0;
 
     for await (const chunk of stream) {
-      // Process any function calls in this chunk
-      const functionCalls = chunk.functionCalls;
-      if (functionCalls && functionCalls.length > 0) {
-        functionCalls.forEach((fc) => {
+      // Process function calls from parts directly to get thoughtSignature
+      const parts = chunk.candidates?.[0]?.content?.parts || [];
+      for (const part of parts) {
+        if (part.functionCall) {
+          const fc = part.functionCall;
           const id =
             fc.id || this.generateToolCallId(toolCallCounter++, fc.name || 'unknown');
-          // Update or add the tool call
+          // Update or add the tool call with thoughtSignature
           accumulatedToolCalls.set(id, {
             id,
             name: fc.name || 'unknown',
             arguments: (fc.args as Record<string, unknown>) || {},
+            thoughtSignature: part.thoughtSignature,
           });
-        });
+        }
       }
 
       // Extract finishReason from candidates if available

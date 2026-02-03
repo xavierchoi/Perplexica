@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { MinimalProvider } from '@/lib/models/types';
 import { useChat } from '@/lib/hooks/useChat';
 import { AnimatePresence, motion } from 'motion/react';
+import { toast } from 'sonner';
 
 const ModelSelector = () => {
   const [providers, setProviders] = useState<MinimalProvider[]>([]);
@@ -56,10 +57,26 @@ const ModelSelector = () => {
     return [selectedProvider, ...remainingProviders];
   }, [providers, chatModelProvider]);
 
-  const handleModelSelect = (providerId: string, modelKey: string) => {
-    setChatModelProvider({ providerId, key: modelKey });
-    localStorage.setItem('chatModelProviderId', providerId);
-    localStorage.setItem('chatModelKey', modelKey);
+  const handleModelSelect = async (providerId: string, modelKey: string) => {
+    try {
+      const res = await fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          key: 'preferences.selectedChatModel',
+          value: { providerId, key: modelKey },
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to save model selection');
+      }
+
+      setChatModelProvider({ providerId, key: modelKey });
+    } catch (err) {
+      console.error('Failed to save model selection:', err);
+      toast.error('Failed to save model selection');
+    }
   };
 
   const filteredProviders = orderedProviders
