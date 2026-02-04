@@ -8,6 +8,7 @@ import db from '@/lib/db';
 import { chats, messages } from '@/lib/db/schema';
 import { and, eq, gt } from 'drizzle-orm';
 import { TextBlock } from '@/lib/types';
+import { memoryRetriever } from '@/lib/memory';
 
 class SearchAgent {
   async searchAsync(session: SessionManager, input: SearchAgentInput) {
@@ -89,9 +90,13 @@ class SearchAgent {
       });
     }
 
-    const [widgetOutputs, searchResults] = await Promise.all([
+    const [widgetOutputs, searchResults, memoryContext] = await Promise.all([
       widgetPromise,
       searchPromise,
+      memoryRetriever.getFormattedMemoryContext().catch((err) => {
+        console.error('Failed to retrieve memory context:', err);
+        return '';
+      }),
     ]);
 
     session.emit('data', {
@@ -118,6 +123,7 @@ class SearchAgent {
       finalContextWithWidgets,
       input.config.systemInstructions,
       input.config.mode,
+      memoryContext,
     );
     const answerStream = input.config.llm.streamText({
       messages: [

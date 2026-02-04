@@ -7,6 +7,7 @@ import {
   Search,
   Sliders,
   ToggleRight,
+  Brain,
 } from 'lucide-react';
 import Preferences from './Sections/Preferences';
 import { motion } from 'framer-motion';
@@ -18,6 +19,7 @@ import Models from './Sections/Models/Section';
 import SearchSection from './Sections/Search';
 import Select from '@/components/ui/Select';
 import Personalization from './Sections/Personalization';
+import MemorySection from './Sections/Memory';
 
 const sections = [
   {
@@ -51,6 +53,15 @@ const sections = [
     icon: Search,
     component: SearchSection,
     dataAdd: 'search',
+  },
+  {
+    key: 'memory',
+    name: 'Memory',
+    description: 'Manage personal memories for personalized responses.',
+    icon: Brain,
+    component: MemorySection,
+    dataAdd: 'memory',
+    standalone: true,
   },
 ];
 
@@ -203,10 +214,14 @@ const SettingsDialogue = ({
                       </div>
                     </div>
                     <div className="flex-1 overflow-y-auto">
-                      <selectedSection.component
-                        fields={config.fields[selectedSection.dataAdd]}
-                        values={config.values[selectedSection.dataAdd]}
-                      />
+                      {'standalone' in selectedSection && selectedSection.standalone ? (
+                        <selectedSection.component />
+                      ) : (
+                        <selectedSection.component
+                          fields={config.fields[selectedSection.dataAdd]}
+                          values={config.values[selectedSection.dataAdd]}
+                        />
+                      )}
                     </div>
                   </div>
                 )}

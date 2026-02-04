@@ -9,6 +9,7 @@ import {
   GlobeIcon,
   GraduationCapIcon,
   NetworkIcon,
+  YoutubeLogo,
 } from '@phosphor-icons/react';
 import { AnimatePresence, motion } from 'motion/react';
 
@@ -27,6 +28,11 @@ const sourcesList = [
     name: 'Social',
     key: 'discussions',
     icon: <NetworkIcon className="h-[16px] w-auto" />,
+  },
+  {
+    name: 'YouTube',
+    key: 'youtube',
+    icon: <YoutubeLogo className="h-[16px] w-auto" />,
   },
 ];
 

@@ -50,11 +50,13 @@ type ChatContext = {
   chatModelProvider: ChatModelProvider;
   embeddingModelProvider: EmbeddingModelProvider;
   researchEnded: boolean;
+  spaceId: string | null;
   setResearchEnded: (ended: boolean) => void;
   setOptimizationMode: (mode: string) => void;
   setSources: (sources: string[]) => void;
   setFiles: (files: File[]) => void;
   setFileIds: (fileIds: string[]) => void;
+  setSpaceId: (spaceId: string | null) => void;
   sendMessage: (
     message: string,
     messageId?: string,
@@ -347,11 +349,13 @@ export const chatContext = createContext<ChatContext>({
   chatModelProvider: { key: '', providerId: '' },
   embeddingModelProvider: { key: '', providerId: '' },
   researchEnded: false,
+  spaceId: null,
   rewrite: () => {},
   sendMessage: async () => {},
   setFileIds: () => {},
   setFiles: () => {},
   setSources: () => {},
+  setSpaceId: () => {},
   setOptimizationMode: () => {},
   setChatModelProvider: () => {},
   setEmbeddingModelProvider: () => {},
@@ -380,6 +384,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 
   const [sources, setSources] = useState<string[]>(['web']);
   const [optimizationMode, setOptimizationMode] = useState('balanced');
+  const [spaceId, setSpaceId] = useState<string | null>(null);
 
   const [isMessagesLoaded, setIsMessagesLoaded] = useState(false);
 
@@ -888,6 +893,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
           providerId: embeddingModelProvider.providerId,
         },
         systemInstructions,
+        spaceId,
       }),
     });
 
@@ -937,9 +943,11 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
         messageAppeared,
         notFound,
         optimizationMode,
+        spaceId,
         setFileIds,
         setFiles,
         setSources,
+        setSpaceId,
         setOptimizationMode,
         rewrite,
         sendMessage,
