@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import AddProvider from './AddProviderDialog';
 import {
   ConfigModelProvider,
   ModelProviderUISection,
+  SelectedModel,
   UIConfigField,
 } from '@/lib/config/types';
 import ModelProvider from './ModelProvider';
@@ -11,11 +12,6 @@ import { useChat } from '@/lib/hooks/useChat';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Check, Loader2 } from 'lucide-react';
-
-interface SelectedModel {
-  providerId: string;
-  key: string;
-}
 
 const Models = ({
   fields,
@@ -51,9 +47,23 @@ const Models = ({
   // Saving state
   const [isSaving, setIsSaving] = useState(false);
 
-  // Initialize local state from useChat context
+  // Track if initial sync has been done to prevent race conditions during save
+  const initializedRef = useRef(false);
+
+  // Initialize local state from useChat context (only once on mount or first valid data)
   useEffect(() => {
-    if (chatModelProvider?.key && chatModelProvider?.providerId) {
+    // Skip if already initialized or currently saving (prevents race condition)
+    if (initializedRef.current || isSaving) return;
+
+    const hasChatModel =
+      chatModelProvider?.key && chatModelProvider?.providerId;
+    const hasEmbeddingModel =
+      embeddingModelProvider?.key && embeddingModelProvider?.providerId;
+
+    // Wait until we have valid data from context
+    if (!hasChatModel && !hasEmbeddingModel) return;
+
+    if (hasChatModel) {
       const model = {
         providerId: chatModelProvider.providerId,
         key: chatModelProvider.key,
@@ -61,7 +71,7 @@ const Models = ({
       setLocalChatModel(model);
       setInitialChatModel(model);
     }
-    if (embeddingModelProvider?.key && embeddingModelProvider?.providerId) {
+    if (hasEmbeddingModel) {
       const model = {
         providerId: embeddingModelProvider.providerId,
         key: embeddingModelProvider.key,
@@ -69,7 +79,9 @@ const Models = ({
       setLocalEmbeddingModel(model);
       setInitialEmbeddingModel(model);
     }
-  }, [chatModelProvider, embeddingModelProvider]);
+
+    initializedRef.current = true;
+  }, [chatModelProvider, embeddingModelProvider, isSaving]);
 
   // Check if there are unsaved changes
   const isDirty = useMemo(() => {
@@ -125,7 +137,9 @@ const Models = ({
       toast.success('Models saved successfully');
     } catch (error) {
       console.error('Error saving models:', error);
-      toast.error('Failed to save models');
+      toast.error(
+        `Failed to save models: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     } finally {
       setIsSaving(false);
     }

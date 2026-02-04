@@ -1,11 +1,6 @@
 import Select from '@/components/ui/Select';
-import { ConfigModelProvider } from '@/lib/config/types';
+import { ConfigModelProvider, SelectedModel } from '@/lib/config/types';
 import { useMemo } from 'react';
-
-interface SelectedModel {
-  providerId: string;
-  key: string;
-}
 
 interface ModelSelectProps {
   providers: ConfigModelProvider[];

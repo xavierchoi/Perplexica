@@ -1,20 +1,16 @@
 import {
   ConfigModelProvider,
+  SelectedModel,
   UIConfigField,
   UIConfigSections,
 } from '@/lib/config/types';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import AddProvider from '../Settings/Sections/Models/AddProviderDialog';
 import ModelProvider from '../Settings/Sections/Models/ModelProvider';
 import ModelSelect from '@/components/Settings/Sections/Models/ModelSelect';
-
-interface SelectedModel {
-  providerId: string;
-  key: string;
-}
 
 const SetupConfig = ({
   configSections,
