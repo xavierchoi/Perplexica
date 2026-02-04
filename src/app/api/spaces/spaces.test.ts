@@ -22,6 +22,17 @@ const mockInsert = vi.fn().mockReturnValue({
   }),
 });
 
+const mockTx = {
+  update: vi.fn().mockReturnValue({
+    set: vi.fn().mockReturnValue({
+      where: vi.fn().mockResolvedValue(undefined),
+    }),
+  }),
+  delete: vi.fn().mockReturnValue({
+    where: vi.fn().mockResolvedValue(undefined),
+  }),
+};
+
 const mockDb = {
   query: {
     spaces: {
@@ -45,6 +56,9 @@ const mockDb = {
       execute: vi.fn().mockResolvedValue(undefined),
     }),
   }),
+  transaction: vi.fn().mockImplementation(async (callback) => {
+    await callback(mockTx);
+  }),
 };
 
 vi.mock('@/lib/db', () => ({
@@ -56,9 +70,6 @@ vi.mock('@/lib/db/schema', () => ({
   chats: { spaceId: 'spaceId' },
 }));
 
-vi.mock('uuid', () => ({
-  v4: vi.fn().mockReturnValue('new-space-id'),
-}));
 
 vi.mock('drizzle-orm', () => ({
   eq: vi.fn((field, value) => ({ field, value })),
@@ -96,7 +107,7 @@ describe('Spaces API', () => {
   });
 
   describe('POST /api/spaces', () => {
-    it.skip('should create a new space with name and description', async () => {
+    it('should create a new space with name and description', async () => {
       const { POST } = await import('./route');
       const request = new Request('http://localhost/api/spaces', {
         method: 'POST',
@@ -111,7 +122,7 @@ describe('Spaces API', () => {
       const data = await response.json();
 
       expect(response.status).toBe(201);
-      expect(data.space.id).toBe('new-space-id');
+      expect(data.space.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
       expect(data.space.name).toBe('New Space');
       expect(data.space.description).toBe('New Description');
     });
@@ -282,7 +293,7 @@ describe('Spaces API - Individual Space', () => {
   });
 
   describe('DELETE /api/spaces/[id]', () => {
-    it.skip('should delete space and unlink chats', async () => {
+    it('should delete space and unlink chats', async () => {
       const mockSpace = {
         id: 'space-1',
         name: 'Test Space',
@@ -301,8 +312,7 @@ describe('Spaces API - Individual Space', () => {
 
       expect(response.status).toBe(200);
       expect(data.message).toBe('Space deleted successfully');
-      expect(mockDb.update).toHaveBeenCalled();
-      expect(mockDb.delete).toHaveBeenCalled();
+      expect(mockDb.transaction).toHaveBeenCalled();
     });
 
     it('should return 404 when deleting nonexistent space', async () => {
