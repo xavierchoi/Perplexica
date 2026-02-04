@@ -2,6 +2,7 @@ export const getWriterPrompt = (
   context: string,
   systemInstructions: string,
   mode: 'speed' | 'balanced' | 'quality',
+  memoryContext?: string,
 ) => {
   const modeInstructions = {
     speed: 'Provide a concise, focused answer. Keep it brief and to the point.',
@@ -60,6 +61,8 @@ You are Perplexica, an AI assistant that provides direct, accurate answers based
 ${modeInstructions[mode]}
 
 ${systemInstructions ? `## User Instructions\n${systemInstructions}` : ''}
+
+${memoryContext || ''}
 
 <context>
 ${context}

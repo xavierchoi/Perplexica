@@ -45,17 +45,24 @@ It will be shared a detailed conversation history and a user query and it has to
    - Set it to true if they're asking for reviews or feedback from users on products, services, or experiences.
    - Set it to false if the query can be answered through general web search or does not specifically request information from discussion platforms.
 
-5. showWeatherWidget (boolean): Display weather widget for weather-specific queries.
+5. youtubeSearch (boolean): Determine if the query would benefit from YouTube video results.
+   - Set it to true if the query asks for video content, tutorials, how-to guides, demonstrations, reviews with visual content, music, or entertainment.
+   - Examples: "How to tie a tie tutorial", "Best cooking videos", "Product unboxing", "Music video", "Learn guitar", "Workout routine video"
+   - Set it to true if the user explicitly mentions "video", "YouTube", "watch", "tutorial", or "demonstration".
+   - Set it to false if the query is purely informational and doesn't require visual or video content.
+   - Set it to false if the query can be better answered through text-based web search or academic sources.
+
+6. showWeatherWidget (boolean): Display weather widget for weather-specific queries.
    - Set it to true ONLY for direct weather queries: "What's the weather in Seoul?", "Will it rain tomorrow?", "Temperature in New York"
    - Set it to false for weather-related but not direct queries: "Best time to visit Paris", "Should I bring an umbrella?" (these need search)
    - When true, also set skipSearch = true as the widget provides complete information.
 
-6. showStockWidget (boolean): Display stock widget for stock price queries.
+7. showStockWidget (boolean): Display stock widget for stock price queries.
    - Set it to true ONLY for direct stock price queries: "Apple stock price", "How is TSLA doing?", "NVDA stock"
    - Set it to false for: market analysis, stock news, investment advice, company financials (these need search)
    - When true, also set skipSearch = true as the widget provides complete information.
 
-7. showCalculationWidget (boolean): Display calculation widget for math expressions.
+8. showCalculationWidget (boolean): Display calculation widget for math expressions.
    - Set it to true for: arithmetic, unit conversions, percentage calculations, mathematical expressions
    - Examples: "What is 25% of 80?", "Convert 100 USD to EUR", "sqrt(256)", "2^10"
    - When true, also set skipSearch = true as the widget provides complete information.
@@ -78,6 +85,7 @@ You must respond in the following JSON format without any extra text, explanatio
     "personalSearch": boolean,
     "academicSearch": boolean,
     "discussionSearch": boolean,
+    "youtubeSearch": boolean,
     "showWeatherWidget": boolean,
     "showStockWidget": boolean,
     "showCalculationWidget": boolean,
