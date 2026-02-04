@@ -31,12 +31,19 @@ interface DBFile {
   fileId: string;
 }
 
-export const spaces = sqliteTable('spaces', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  description: text('description'),
-  createdAt: text('createdAt').notNull(),
-});
+export const spaces = sqliteTable(
+  'spaces',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    description: text('description'),
+    createdAt: text('createdAt').notNull(),
+    userId: text('userId'), // 멀티유저 대비
+  },
+  (table) => ({
+    userIdIdx: index('spaces_user_id_idx').on(table.userId),
+  }),
+);
 
 export const chats = sqliteTable(
   'chats',
@@ -57,10 +64,12 @@ export const chats = sqliteTable(
       .default(sql`'[]'`),
     shareId: text('shareId'),
     isPublic: integer('isPublic', { mode: 'boolean' }).default(false),
+    userId: text('userId'), // 멀티유저 대비
   },
   (table) => ({
     spaceIdIdx: index('chats_space_id_idx').on(table.spaceId),
     shareIdIdx: index('chats_share_id_idx').on(table.shareId),
+    userIdIdx: index('chats_user_id_idx').on(table.userId),
   }),
 );
 
@@ -78,10 +87,12 @@ export const memories = sqliteTable(
     createdAt: text('createdAt').notNull(),
     updatedAt: text('updatedAt').notNull(),
     isActive: integer('isActive', { mode: 'boolean' }).default(true),
+    userId: text('userId'), // 멀티유저 대비
   },
   (table) => ({
     typeIdx: index('memories_type_idx').on(table.type),
     isActiveIdx: index('memories_is_active_idx').on(table.isActive),
+    userIdIdx: index('memories_user_id_idx').on(table.userId),
   }),
 );
 
@@ -104,11 +115,13 @@ export const tasks = sqliteTable(
     nextRunAt: text('nextRunAt'),
     createdAt: text('createdAt').notNull(),
     updatedAt: text('updatedAt').notNull(),
+    userId: text('userId'), // 멀티유저 대비
   },
   (table) => ({
     spaceIdIdx: index('tasks_space_id_idx').on(table.spaceId),
     isActiveIdx: index('tasks_is_active_idx').on(table.isActive),
     nextRunAtIdx: index('tasks_next_run_at_idx').on(table.nextRunAt),
+    userIdIdx: index('tasks_user_id_idx').on(table.userId),
   }),
 );
 
