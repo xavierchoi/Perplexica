@@ -1,73 +1,33 @@
 import Select from '@/components/ui/Select';
 import { ConfigModelProvider } from '@/lib/config/types';
-import { useChat } from '@/lib/hooks/useChat';
-import { useState, useMemo } from 'react';
-import { toast } from 'sonner';
+import { useMemo } from 'react';
 
-const ModelSelect = ({
-  providers,
-  type,
-}: {
+interface SelectedModel {
+  providerId: string;
+  key: string;
+}
+
+interface ModelSelectProps {
   providers: ConfigModelProvider[];
   type: 'chat' | 'embedding';
-}) => {
-  const [loading, setLoading] = useState(false);
-  const {
-    setChatModelProvider,
-    setEmbeddingModelProvider,
-    chatModelProvider,
-    embeddingModelProvider,
-  } = useChat();
+  value: SelectedModel | null;
+  onChange: (value: SelectedModel) => void;
+}
 
-  // Get current selection from useChat context (server-backed)
+const ModelSelect = ({ providers, type, value, onChange }: ModelSelectProps) => {
+  // Convert current selection to string format for Select component
   const selectedModel = useMemo(() => {
-    if (type === 'chat') {
-      return chatModelProvider?.providerId && chatModelProvider?.key
-        ? `${chatModelProvider.providerId}/${chatModelProvider.key}`
-        : '';
-    } else {
-      return embeddingModelProvider?.providerId && embeddingModelProvider?.key
-        ? `${embeddingModelProvider.providerId}/${embeddingModelProvider.key}`
-        : '';
+    if (value?.providerId && value?.key) {
+      return `${value.providerId}/${value.key}`;
     }
-  }, [type, chatModelProvider, embeddingModelProvider]);
+    return '';
+  }, [value]);
 
-  const saveModelToServer = async (
-    configKey: string,
-    value: { providerId: string; key: string },
-  ) => {
-    const res = await fetch('/api/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: configKey, value }),
-    });
-
-    if (!res.ok) {
-      throw new Error('Server returned an error');
-    }
-  };
-
-  const handleSave = async (newValue: string) => {
-    setLoading(true);
-
-    try {
-      const providerId = newValue.split('/')[0];
-      const modelKey = newValue.split('/').slice(1).join('/');
-      const modelValue = { providerId, key: modelKey };
-
-      if (type === 'chat') {
-        await saveModelToServer('preferences.selectedChatModel', modelValue);
-        setChatModelProvider(modelValue);
-      } else {
-        await saveModelToServer('preferences.selectedEmbeddingModel', modelValue);
-        setEmbeddingModelProvider(modelValue);
-      }
-    } catch (error) {
-      console.error('Error saving config:', error);
-      toast.error('Failed to save configuration.');
-    } finally {
-      setLoading(false);
-    }
+  // Handle selection change (local state only, no server save)
+  const handleChange = (newValue: string) => {
+    const providerId = newValue.split('/')[0];
+    const modelKey = newValue.split('/').slice(1).join('/');
+    onChange({ providerId, key: modelKey });
   };
 
   return (
@@ -85,7 +45,7 @@ const ModelSelect = ({
         </div>
         <Select
           value={selectedModel}
-          onChange={(event) => handleSave(event.target.value)}
+          onChange={(event) => handleChange(event.target.value)}
           options={
             type === 'chat'
               ? providers.flatMap((provider) =>
@@ -102,8 +62,6 @@ const ModelSelect = ({
                 )
           }
           className="!text-xs lg:!text-[13px]"
-          loading={loading}
-          disabled={loading}
         />
       </div>
     </section>

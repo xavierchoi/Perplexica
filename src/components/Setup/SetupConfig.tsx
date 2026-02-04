@@ -5,11 +5,16 @@ import {
 } from '@/lib/config/types';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import AddProvider from '../Settings/Sections/Models/AddProviderDialog';
 import ModelProvider from '../Settings/Sections/Models/ModelProvider';
 import ModelSelect from '@/components/Settings/Sections/Models/ModelSelect';
+
+interface SelectedModel {
+  providerId: string;
+  key: string;
+}
 
 const SetupConfig = ({
   configSections,
@@ -23,6 +28,12 @@ const SetupConfig = ({
   const [providers, setProviders] = useState<ConfigModelProvider[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFinishing, setIsFinishing] = useState(false);
+
+  // Local state for model selections
+  const [selectedChatModel, setSelectedChatModel] =
+    useState<SelectedModel | null>(null);
+  const [selectedEmbeddingModel, setSelectedEmbeddingModel] =
+    useState<SelectedModel | null>(null);
 
   useEffect(() => {
     const fetchProviders = async () => {
@@ -46,9 +57,66 @@ const SetupConfig = ({
     }
   }, [setupState]);
 
+  // Auto-select first available model when entering step 3
+  useEffect(() => {
+    if (setupState === 3 && providers.length > 0) {
+      // Auto-select first chat model if not already selected
+      if (!selectedChatModel) {
+        const chatProvider = providers.find((p) => p.chatModels.length > 0);
+        if (chatProvider && chatProvider.chatModels[0]) {
+          setSelectedChatModel({
+            providerId: chatProvider.id,
+            key: chatProvider.chatModels[0].key,
+          });
+        }
+      }
+
+      // Auto-select first embedding model if not already selected
+      if (!selectedEmbeddingModel) {
+        const embeddingProvider = providers.find(
+          (p) => p.embeddingModels.length > 0,
+        );
+        if (embeddingProvider && embeddingProvider.embeddingModels[0]) {
+          setSelectedEmbeddingModel({
+            providerId: embeddingProvider.id,
+            key: embeddingProvider.embeddingModels[0].key,
+          });
+        }
+      }
+    }
+  }, [setupState, providers, selectedChatModel, selectedEmbeddingModel]);
+
   const handleFinish = async () => {
     try {
       setIsFinishing(true);
+
+      // Save selected chat model
+      if (selectedChatModel) {
+        const chatRes = await fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            key: 'preferences.selectedChatModel',
+            value: selectedChatModel,
+          }),
+        });
+        if (!chatRes.ok) throw new Error('Failed to save chat model');
+      }
+
+      // Save selected embedding model
+      if (selectedEmbeddingModel) {
+        const embeddingRes = await fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            key: 'preferences.selectedEmbeddingModel',
+            value: selectedEmbeddingModel,
+          }),
+        });
+        if (!embeddingRes.ok) throw new Error('Failed to save embedding model');
+      }
+
+      // Mark setup as complete
       const res = await fetch('/api/config/setup-complete', {
         method: 'POST',
       });
@@ -155,8 +223,18 @@ const SetupConfig = ({
             </div>
 
             <div className="space-y-3 md:space-y-4">
-              <ModelSelect providers={providers} type="chat" />
-              <ModelSelect providers={providers} type="embedding" />
+              <ModelSelect
+                providers={providers}
+                type="chat"
+                value={selectedChatModel}
+                onChange={setSelectedChatModel}
+              />
+              <ModelSelect
+                providers={providers}
+                type="embedding"
+                value={selectedEmbeddingModel}
+                onChange={setSelectedEmbeddingModel}
+              />
             </div>
           </div>
         </motion.div>
