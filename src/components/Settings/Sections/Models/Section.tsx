@@ -1,12 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import AddProvider from './AddProviderDialog';
 import {
   ConfigModelProvider,
   ModelProviderUISection,
+  SelectedModel,
   UIConfigField,
 } from '@/lib/config/types';
 import ModelProvider from './ModelProvider';
 import ModelSelect from './ModelSelect';
+import { useChat } from '@/lib/hooks/useChat';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import { Check, Loader2 } from 'lucide-react';
 
 const Models = ({
   fields,
@@ -16,6 +21,129 @@ const Models = ({
   values: ConfigModelProvider[];
 }) => {
   const [providers, setProviders] = useState<ConfigModelProvider[]>(values);
+
+  // Get current model selections from useChat context
+  const {
+    chatModelProvider,
+    embeddingModelProvider,
+    setChatModelProvider,
+    setEmbeddingModelProvider,
+  } = useChat();
+
+  // Local state for model selections (before saving)
+  const [localChatModel, setLocalChatModel] = useState<SelectedModel | null>(
+    null,
+  );
+  const [localEmbeddingModel, setLocalEmbeddingModel] =
+    useState<SelectedModel | null>(null);
+
+  // Initial values for dirty checking
+  const [initialChatModel, setInitialChatModel] = useState<SelectedModel | null>(
+    null,
+  );
+  const [initialEmbeddingModel, setInitialEmbeddingModel] =
+    useState<SelectedModel | null>(null);
+
+  // Saving state
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Track if initial sync has been done to prevent race conditions during save
+  const initializedRef = useRef(false);
+
+  // Initialize local state from useChat context (only once on mount or first valid data)
+  useEffect(() => {
+    // Skip if already initialized or currently saving (prevents race condition)
+    if (initializedRef.current || isSaving) return;
+
+    const hasChatModel =
+      chatModelProvider?.key && chatModelProvider?.providerId;
+    const hasEmbeddingModel =
+      embeddingModelProvider?.key && embeddingModelProvider?.providerId;
+
+    // Wait until we have valid data from context
+    if (!hasChatModel && !hasEmbeddingModel) return;
+
+    if (hasChatModel) {
+      const model = {
+        providerId: chatModelProvider.providerId,
+        key: chatModelProvider.key,
+      };
+      setLocalChatModel(model);
+      setInitialChatModel(model);
+    }
+    if (hasEmbeddingModel) {
+      const model = {
+        providerId: embeddingModelProvider.providerId,
+        key: embeddingModelProvider.key,
+      };
+      setLocalEmbeddingModel(model);
+      setInitialEmbeddingModel(model);
+    }
+
+    initializedRef.current = true;
+  }, [chatModelProvider, embeddingModelProvider, isSaving]);
+
+  // Check if there are unsaved changes
+  const isDirty = useMemo(() => {
+    const chatChanged =
+      JSON.stringify(localChatModel) !== JSON.stringify(initialChatModel);
+    const embeddingChanged =
+      JSON.stringify(localEmbeddingModel) !==
+      JSON.stringify(initialEmbeddingModel);
+    return chatChanged || embeddingChanged;
+  }, [
+    localChatModel,
+    localEmbeddingModel,
+    initialChatModel,
+    initialEmbeddingModel,
+  ]);
+
+  // Save models to server
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      // Save chat model
+      if (localChatModel) {
+        const res = await fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            key: 'preferences.selectedChatModel',
+            value: localChatModel,
+          }),
+        });
+        if (!res.ok) throw new Error('Failed to save chat model');
+        setChatModelProvider(localChatModel);
+      }
+
+      // Save embedding model
+      if (localEmbeddingModel) {
+        const res = await fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            key: 'preferences.selectedEmbeddingModel',
+            value: localEmbeddingModel,
+          }),
+        });
+        if (!res.ok) throw new Error('Failed to save embedding model');
+        setEmbeddingModelProvider(localEmbeddingModel);
+      }
+
+      // Update initial values after successful save
+      setInitialChatModel(localChatModel);
+      setInitialEmbeddingModel(localEmbeddingModel);
+
+      toast.success('Models saved successfully');
+    } catch (error) {
+      console.error('Error saving models:', error);
+      toast.error(
+        `Failed to save models: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="flex-1 space-y-6 overflow-y-auto py-6">
@@ -28,13 +156,42 @@ const Models = ({
             p.chatModels.some((m) => m.key != 'error'),
           )}
           type="chat"
+          value={localChatModel}
+          onChange={setLocalChatModel}
         />
         <ModelSelect
           providers={values.filter((p) =>
             p.embeddingModels.some((m) => m.key != 'error'),
           )}
           type="embedding"
+          value={localEmbeddingModel}
+          onChange={setLocalEmbeddingModel}
         />
+        {/* Save Button */}
+        <div className="flex justify-end mt-2">
+          <button
+            onClick={handleSave}
+            disabled={!isDirty || isSaving}
+            className={cn(
+              'flex items-center space-x-1.5 px-4 py-2 text-sm rounded-lg transition-colors',
+              isDirty && !isSaving
+                ? 'bg-sky-500 text-white hover:bg-sky-600'
+                : 'bg-light-200 dark:bg-dark-200 text-black/40 dark:text-white/40 cursor-not-allowed',
+            )}
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Saving...</span>
+              </>
+            ) : (
+              <>
+                <Check className="h-4 w-4" />
+                <span>Save</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
       <div className="border-t border-light-200 dark:border-dark-200" />
       <div className="flex flex-row justify-between items-center px-6 ">
