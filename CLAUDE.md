@@ -60,3 +60,7 @@ The `optimizationMode` parameter controls the speed/quality tradeoff:
 - `speed` - Fast responses
 - `balanced` - Default mode
 - `quality` - Deep research
+
+### Notes
+
+- Settings > Models: 자동 저장 대신 명시적 Save 버튼 사용 (PR #6). ModelSelect는 controlled component.
